@@ -103,12 +103,22 @@ $(".list-group").on("click", "span", function() {
   // swap out elements
   $(this).replaceWith(dateInput);
 
-  // automatically focus on new element
+  // enable jquery ui datepicker
+  dateInput.datepicker({
+    minDate: 1,
+    onClose: function() {
+      // when calendar is slosed, force a "change" event on the `dateInput`
+      $(this).trigger("change");
+    }  
+  });
+  
+
+  // automatically focus/ bring up calendar
   dateInput.trigger("focus");
 });
 
 // value of due date was changed
-$(".list-group").on("blur", "input[type='text']", function() {
+$(".list-group").on("change", "input[type='text']", function() {
   // get current textarea
   var date = $(this)
     .val()
@@ -136,6 +146,9 @@ $(".list-group").on("blur", "input[type='text']", function() {
 
   // replace input with span elements
   $(this).replaceWith(taskSpan);
+
+  // Pass task's <li> element into aditTask() to check new due date
+  auditTask($(taskSpan).closest(".list-group-item"));
 });
 
 // modal was triggered
@@ -249,6 +262,52 @@ $("#trash").droppable({
   }
 });
 
+$("#modalDueDate").datepicker({
+  minDate: 1
+});
+
+var auditTask = function(taskE1) {
+  // to ensure element is getting to the function
+  //console.log(taskE1);
+
+  // get date from task element
+  var date = $(taskE1).find("span").text().trim();
+  // ensure it works
+  //console.log(date);
+
+  // convert to moment object at 5:00pm
+  var time = moment(date, "L").set("hour", 17);
+  // this should print out an object for th value of the variable, but at 5:00pm of that date
+  // console.log(time);
+
+  // remove any old classse from element
+  $(taskE1).removeClass("list-group-item-warning list-group-item-danger");
+
+  // apply new class if task is near/over due date
+  if (moment().isAfter(time)) {
+    $(taskE1).addClass("list-group-item-danger");
+  } else if (Math.abs(moment().diff(time, "days")) <= 2) {
+    $(taskE1).addClass("list-group-item-warning");
+  }
+};
+
+var createTask = function(taskText, taskDate, taskList) {
+  // create elements that make up a task getItem
+  var taskLi = $('<li>').addClass("list-group-item");
+
+  var taskSpan = $('<span>').addClass("badge badge-primary badge-pill").text(taskDate);
+
+  var taskP = $("p").addClass("m-1").text(taskText);
+
+  // append span and p element to parent li
+  taskLi.append(taskSpan, taskP);
+
+  // check due date
+  auditTask(taskLi);
+
+  // append to ul list on the
+  $("#list-" + taskList).append(taskLi);
+};
 
 // load tasks for the first time
 loadTasks();
